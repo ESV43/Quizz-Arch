@@ -1,78 +1,100 @@
 const questions = [
-  {
-    question: "What is the capital of France?",
-    options: ["London", "Berlin", "Paris", "Madrid"],
-    correctAnswer: "Paris"
-  },
-  // Add more questions here...
+    {
+        round: 1,
+        question: "What is the capital of France?",
+        options: ["Paris", "Berlin", "Madrid", "Rome"],
+        correctAnswer: "Paris"
+    },
+    // Add more questions here for each round
+    // ...
 ];
 
-const questionContainer = document.querySelector('.question-container');
-const questionElement = questionContainer.querySelector('.question');
-const optionsList = questionContainer.querySelector('.options');
-const timerElement = document.getElementById('timer');
-const scoreElement = document.getElementById('score');
-const startBtn = document.getElementById('start-btn');
-
-let currentQuestion = 0;
+let currentRound = 1;
+let currentQuestionIndex = 0;
 let score = 0;
-let timer = 30; // Initial timer value in seconds
+let timerCount = 30;  // Initial timer value in seconds
 
-function startQuiz() {
-  startBtn.style.display = 'none';
-  showQuestion();
-  startTimer();
+const roundsDisplay = document.getElementById("rounds");
+const questionSection = document.getElementById("question-section");
+const feedbackSection = document.getElementById("feedback");
+const timerElement = document.getElementById("timerCount");
+const questionElement = document.getElementById("question");
+const optionsElement = document.getElementById("options");
+const submitButton = document.getElementById("submit-answer");
+const resultElement = document.getElementById("result");
+const correctAnswerElement = document.getElementById("correct-answer");
+
+function startTimer() {
+    timerCount--;
+    timerElement.textContent = timerCount;
+    if (timerCount >= 0) {
+        setTimeout(startTimer, 1000);
+    } else {
+        endRound();
+    }
 }
 
-function showQuestion() {
-  const currentQuestionData = questions[currentQuestion];
-  questionElement.textContent = currentQuestionData.question;
-  optionsList.innerHTML = '';
-
-  currentQuestionData.options.forEach(option => {
-    const li = document.createElement('li');
-    li.textContent = option;
-    li.addEventListener('click', () => checkAnswer(option));
-    optionsList.appendChild(li);
-  });
+function displayQuestion() {
+    const currentQuestion = questions.find(q => q.round === currentRound && !q.displayed);
+    if (currentQuestion) {
+        currentQuestion.displayed = true;
+        questionElement.textContent = currentQuestion.question;
+        currentQuestion.options.forEach(option => {
+            const button = document.createElement("button");
+            button.textContent = option;
+            button.addEventListener("click", () => checkAnswer(option));
+            optionsElement.appendChild(button);
+        });
+        submitButton.style.display = "block";
+        startTimer();
+    } else {
+        endRound();
+    }
 }
 
 function checkAnswer(selectedOption) {
-  const currentQuestionData = questions[currentQuestion];
-  const isCorrect = selectedOption === currentQuestionData.correctAnswer;
-
-  if (isCorrect) {
-    score += 10;
-    scoreElement.textContent = score;
-  }
-
-  optionsList.innerHTML = '';
-  optionsList.textContent = isCorrect ? 'Correct!' : 'Wrong!';
-
-  currentQuestion++;
-  if (currentQuestion < questions.length) {
-    setTimeout(showQuestion, 1000);
-  } else {
-    endQuiz();
-  }
-}
-
-function startTimer() {
-  const timerInterval = setInterval(() => {
-    timer--;
-    timerElement.textContent = timer;
-
-    if (timer === 0) {
-      clearInterval(timerInterval);
-      endQuiz();
+    const currentQuestion = questions.find(q => q.round === currentRound && !q.answered);
+    if (currentQuestion) {
+        currentQuestion.answered = true;
+        if (selectedOption === currentQuestion.correctAnswer) {
+            resultElement.textContent = "Correct!";
+            score += 10;
+        } else {
+            resultElement.textContent = "Wrong!";
+            correctAnswerElement.textContent = `Correct Answer: ${currentQuestion.correctAnswer}`;
+        }
+        feedbackSection.style.display = "block";
+        submitButton.style.display = "none";
+        optionsElement.innerHTML = "";
     }
-  }, 1000);
 }
 
-function endQuiz() {
-  questionElement.textContent = 'Quiz ended!';
-  optionsList.innerHTML = '';
-  timerElement.textContent = '0';
+function endRound() {
+    feedbackSection.style.display = "none";
+    timerElement.textContent = "0";
+    if (currentRound < 3) {
+        currentRound++;
+        currentQuestionIndex = 0;
+        displayRound();
+    } else {
+        displayFinalScore();
+    }
 }
 
-startBtn.addEventListener('click', startQuiz);
+function displayRound() {
+    roundsDisplay.innerHTML = `Round ${currentRound}`;
+    displayQuestion();
+}
+
+function displayFinalScore() {
+    questionSection.style.display = "none";
+    feedbackSection.style.display = "block";
+    resultElement.textContent = `Quiz completed! Your score: ${score}`;
+    correctAnswerElement.textContent = "";
+}
+
+function init() {
+    displayRound();
+}
+
+init();
