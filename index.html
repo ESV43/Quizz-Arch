@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Round Quiz</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .question-container {
+            margin-bottom: 20px;
+        }
+        .option {
+            display: block;
+            width: 100%;
+            padding: 10px 15px;
+            margin: 8px 0;
+            background-color: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        .option:hover:not(:disabled) {
+            background-color: #e9ecef;
+        }
+        .option.selected {
+            background-color: #cce5ff;
+            border-color: #b8daff;
+        }
+        .option.correct {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .option.incorrect {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .option:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .timer {
+            font-size: 24px;
+            text-align: center;
+            margin: 10px 0;
+            color: #dc3545;
+        }
+        .lifelines {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+        .lifeline-btn {
+            padding: 8px 15px;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .lifeline-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .lifeline-btn:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+        .explanation {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            display: none;
+        }
+        .hint {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            display: none;
+        }
+        button.next-btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button.next-btn:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        button.next-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .round-complete {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .score-breakdown {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="stats">
+            <div>Round: <span id="round">1</span>/3</div>
+            <div>Question: <span id="questionNumber">1</span>/5</div>
+            <div>Score: <span id="score">0</span></div>
+        </div>
+        <div class="timer" id="timer">30</div>
+        <div id="quizContainer">
+            <div class="lifelines">
+                <button id="fiftyFifty" class="lifeline-btn">50:50</button>
+                <button id="hint" class="lifeline-btn">Hint</button>
+                <button id="timeExtension" class="lifeline-btn">+30 Sec</button>
+            </div>
+            <div class="question-container">
+                <h2 id="question"></h2>
+                <div id="options"></div>
+                <div id="hintText" class="hint"></div>
+                <div id="explanation" class="explanation"></div>
+            </div>
+            <button id="nextButton" class="next-btn" disabled>Next Question</button>
+        </div>
+        <div id="roundComplete" class="round-complete" style="display: none">
+            <h2>Round Complete!</h2>
+            <div class="score-breakdown" id="scoreBreakdown"></div>
+            <button id="nextRoundButton" class="next-btn">Start Next Round</button>
+        </div>
+    </div>
+
+    <script>
+        // Previous fallbackQuestions remain the same
+
+        let currentRound = 1;
+        let currentQuestion = 0;
+        let score = 0;
+        let timeBonus = 0;
+        let currentQuestions = [];
+        let answerSelected = false;
+        let timer;
+        let timeLeft = 30;
+        let lifelines = {
+            fiftyFifty: true,
+            hint: true,
+            timeExtension: true
+        };
+        let roundScores = {
+            correct: 0,
+            time: 0,
+            streak: 0
+        };
+        let currentStreak = 0;
+
+        // DOM elements
+        const elements = {
+            timer: document.getElementById('timer'),
+            question: document.getElementById('question'),
+            options: document.getElementById('options'),
+            hintText: document.getElementById('hintText'),
+            explanation: document.getElementById('explanation'),
+            nextButton: document.getElementById('nextButton'),
+            score: document.getElementById('score'),
+            round: document.getElementById('round'),
+            questionNumber: document.getElementById('questionNumber'),
+            roundComplete: document.getElementById('roundComplete'),
+            scoreBreakdown: document.getElementById('scoreBreakdown'),
+            nextRoundButton: document.getElementById('nextRoundButton'),
+            fiftyFifty: document.getElementById('fiftyFifty'),
+            hint: document.getElementById('hint'),
+            timeExtension: document.getElementById('timeExtension')
+        };
+
+        function startTimer() {
+            clearInterval(timer);
+            timeLeft = 30;
+            elements.timer.textContent = timeLeft;
+            elements.timer.style.color = '#dc3545';
+            
+            timer = setInterval(() => {
+                timeLeft--;
+                elements.timer.textContent = timeLeft;
+                
+                if (timeLeft <= 10) {
+                    elements.timer.style.color = 'red';
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function handleTimeout() {
+            if (!answerSelected) {
+                const options = document.querySelectorAll('.option');
+                const question = currentQuestions[currentQuestion];
+                options[question.correct].classList.add('correct');
+                options.forEach(option => option.disabled = true);
+                elements.explanation.textContent = question.explanation;
+                elements.explanation.style.display = 'block';
+                answerSelected = true;
+                elements.nextButton.disabled = false;
+                currentStreak = 0;
+            }
+        }
+
+        // Lifeline handlers
+        elements.fiftyFifty.onclick = () => {
+            if (!lifelines.fiftyFifty || answerSelected) return;
+            
+            const options = document.querySelectorAll('.option');
+            const question = currentQuestions[currentQuestion];
+            let removed = 0;
+            let indices = [...Array(options.length).keys()]
+                .filter(i => i !== question.correct)
+                .sort(() => Math.random() - 0.5);
+            
+            indices.slice(0, 2).forEach(index => {
+                options[index].style.display = 'none';
+            });
+            
+            lifelines.fiftyFifty = false;
+            elements.fiftyFifty.disabled = true;
+        };
+
+        elements.hint.onclick = () => {
+            if (!lifelines.hint || answerSelected) return;
+            
+            const question = currentQuestions[currentQuestion];
+            elements.hintText.textContent = `Hint: ${question.explanation.split(':')[1]}`;
+            elements.hintText.style.display = 'block';
+            
+            lifelines.hint = false;
+            elements.hint.disabled = true;
+        };
+
+        elements.timeExtension.onclick = () => {
+            if (!lifelines.timeExtension || answerSelected) return;
+            
+            timeLeft += 30;
+            elements.timer.textContent = timeLeft;
+            elements.timer.style.color = '#dc3545';
+            
+            lifelines.timeExtension = false;
+            elements.timeExtension.disabled = true;
+        };
+
+        function calculateScore(isCorrect) {
+            let questionScore = 0;
+            
+            if (isCorrect) {
+                // Base score based on difficulty
+                questionScore += currentRound * 10;
+                
+                // Time bonus
+                timeBonus = Math.max(0, timeLeft);
+                questionScore += timeBonus;
+                
+                // Streak bonus
+                currentStreak++;
+                if (currentStreak >= 3) {
+                    questionScore += 15;
+                }
+                
+                roundScores.correct += questionScore;
+                roundScores.time += timeBonus;
+                if (currentStreak >= 3) {
+                    roundScores.streak += 15;
+                }
+            } else {
+                currentStreak = 0;
+            }
+            
+            return questionScore;
+        }
+
+        function selectOption(index) {
+            if (answerSelected) return;
+
+            clearInterval(timer);
+            const question = currentQuestions[currentQuestion];
+            const options = document.querySelectorAll('.option');
+            
+            options[index].classList.add('selected');
+            options[question.correct].classList.add('correct');
+            
+            const isCorrect = index === question.correct;
+            if (isCorrect) {
+                score += calculateScore(true);
+                elements.score.textContent = score;
+            } else {
+                options[index].classList.add('incorrect');
+                calculateScore(false);
+            }
+
+            elements.explanation.textContent = question.explanation;
+            elements.explanation.style.display = 'block';
+            answerSelected = true;
+            elements.nextButton.disabled = false;
+            options.forEach(option => option.disabled = true);
+        }
+
+        function showRoundSummary() {
+            elements.scoreBreakdown.innerHTML = `
+                <h3>Round ${currentRound} Summary</h3>
+                <p>Base Score: ${roundScores.correct}</p>
+                <p>Time Bonuses: ${roundScores.time}</p>
+                <p>Streak Bonuses: ${roundScores.streak}</p>
+                <p>Total Round Score: ${roundScores.correct + roundScores.time + roundScores.streak}</p>
+            `;
+            
+            // Reset round scores
+            roundScores = {
+                correct: 0,
+                time: 0,
+                streak: 0
+            };
+        }
+
+        // Previous functions (getDifficulty, fetchQuestions) remain the same
+
+        async function startRound(round) {
+            // Reset lifelines
+            lifelines = {
+                fiftyFifty: true,
+                hint: true,
+                timeExtension: true
+            };
+            elements.fiftyFifty.disabled = false;
+            elements.hint.disabled = false;
+            elements.timeExtension.disabled = false;
+            
+            const difficulty = getDifficulty(round);
+            currentQuestions = await fetchQuestions(difficulty);
+            currentQuestion = 0;
+            displayQuestion();
+            elements.roundComplete.style.display = 'none';
+            startTimer();
+        }
+
+        function displayQuestion() {
+            const question = currentQuestions[currentQuestion];
+            elements.question.textContent = decodeHTML(question.question);
+            elements.options.innerHTML = '';
+            elements.explanation.style.display = 'none';
+            elements.hintText.style.display = 'none';
+            answerSelected = false;
+            elements.nextButton.disabled = true;
+
+            question.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option';
+                button.textContent = decodeHTML(option);
+                button.onclick = () => selectOption(index);
+                elements.options.appendChild(button);
+            });
+
+            elements.questionNumber.textContent = currentQuestion + 1;
+            elements.round.textContent = currentRound;
+            startTimer();
+        }
+
+        elements.nextButton.onclick = () => {
+            currentQuestion++;
+            
+            if (currentQuestion >= 5) {
+                showRoundSummary();
+                elements.roundComplete.style.display = 'block';
+                document.getElementById('quizContainer').style.display = 'none';
+            } else {
+                displayQuestion();
+            }
+        };
+
+        elements.nextRoundButton.onclick = () => {
+            currentRound++;
+            if (currentRound <= 3) {
+                document.getElementById('quizContainer').style.display = 'block';
+                startRound(currentRound);
+            } else {
+                alert(`Quiz completed! Final score: ${score}`);
+                location.reload();
+            }
+        };
+
+        // Start the quiz
+        startRound(1);
+    </script>
+</body>
+</html>
