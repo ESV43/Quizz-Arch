@@ -1,23 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiz Master</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Challenge</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="quiz-container">
-    <h1>Quiz Master</h1>
-    <div class="question-container">
-      <p class="question"></p>
-      <ul class="options"></ul>
-    </div>
-    <div class="timer">Time: <span id="timer">0</span> seconds</div>
-    <div class="score">Score: <span id="score">0</span></div>
-    <button id="start-btn">Start Quiz</button>
-  </div>
-
-  <script src="script.js"></script>
+    <header>
+        <h1>Quiz Challenge</h1>
+        <div id="timer">Time: <span id="timerCount">0</span>s</div>
+    </header>
+    
+    <section id="question-section">
+        <h2 id="question">Question will appear here</h2>
+        <div id="options">
+            <!-- Options will be dynamically added here -->
+        </div>
+        <button id="submit-answer">Submit Answer</button>
+    </section>
+    
+    <section id="feedback" style="display: none;">
+        <p id="result"></p>
+        <p id="correct-answer"></p>
+    </section>
+    
+    <section id="rounds">
+        <h3>Round 1</h3>
+        <!-- Questions will be displayed here dynamically -->
+    </section>
+    
+    <footer>
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+        </nav>
+        <p>Copyright &copy; 2023. All rights reserved.</p>
+    </footer>
+    
+    <script src="script.js"></script>
 </body>
 </html>
