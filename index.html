@@ -1,259 +1,364 @@
-<script>
-    // Previous fallbackQuestions remain the same
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Round Quiz</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .question-container {
+            margin-bottom: 20px;
+        }
+        .option {
+            display: block;
+            width: 100%;
+            padding: 12px 15px;
+            margin: 10px 0;
+            background-color: #ffffff;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .option:hover:not(:disabled) {
+            background-color: #f0f0f0;
+            transform: translateY(-2px);
+        }
+        .option.selected {
+            background-color: #cce5ff;
+            border-color: #007bff;
+        }
+        .option.correct {
+            background-color: #d4edda;
+            border-color: #28a745;
+        }
+        .option.incorrect {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+        }
+        .option:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        .timer {
+            font-size: 24px;
+            text-align: center;
+            margin: 10px 0;
+            color: #dc3545;
+        }
+        .next-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+        .next-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        #finalScore {
+            text-align: center;
+            font-size: 24px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="stats">
+            <div>Round: <span id="round">1</span>/3</div>
+            <div>Question: <span id="questionNumber">1</span>/5</div>
+            <div>Score: <span id="score">0</span></div>
+        </div>
+        <div class="timer" id="timer">30</div>
+        <div id="quizContainer">
+            <div class="question-container">
+                <h2 id="question">Loading question...</h2>
+                <div id="options"></div>
+            </div>
+            <button id="nextButton" class="next-btn" disabled>Next Question</button>
+        </div>
+        <div id="finalScoreContainer" style="display: none;">
+            <div id="finalScore"></div>
+            <button id="restartQuiz" class="next-btn">Restart Quiz</button>
+        </div>
+    </div>
 
-    let currentRound = 1;
-    let currentQuestion = 0;
-    let score = 0;
-    let timeBonus = 0;
-    let currentQuestions = [];
-    let answerSelected = false;
-    let timer;
-    let timeLeft = 30;
-    let lifelines = {
-        fiftyFifty: true,
-        hint: true,
-        timeExtension: true
-    };
-    let roundScores = {
-        correct: 0,
-        time: 0,
-        streak: 0
-    };
-    let currentStreak = 0;
+    <script>
+        // Comprehensive Question Bank
+        const questionBank = {
+            easy: [
+                {
+                    question: "What is the capital of France?",
+                    options: ["London", "Berlin", "Paris", "Madrid"],
+                    correct: 2,
+                    explanation: "Paris is the capital of France."
+                },
+                {
+                    question: "Which planet is closest to the Sun?",
+                    options: ["Venus", "Mercury", "Earth", "Mars"],
+                    correct: 1,
+                    explanation: "Mercury is the closest planet to the Sun."
+                },
+                {
+                    question: "What is 7 x 8?",
+                    options: ["54", "56", "62", "64"],
+                    correct: 1,
+                    explanation: "7 x 8 = 56"
+                },
+                {
+                    question: "How many continents are there?",
+                    options: ["5", "6", "7", "8"],
+                    correct: 2,
+                    explanation: "There are 7 continents: Asia, Africa, North America, South America, Antarctica, Europe, and Australia."
+                },
+                {
+                    question: "What is the largest mammal?",
+                    options: ["Elephant", "Blue Whale", "Giraffe", "Hippopotamus"],
+                    correct: 1,
+                    explanation: "The Blue Whale is the largest mammal on Earth."
+                }
+            ],
+            medium: [
+                {
+                    question: "Who painted the Mona Lisa?",
+                    options: ["Vincent Van Gogh", "Pablo Picasso", "Leonardo da Vinci", "Claude Monet"],
+                    correct: 2,
+                    explanation: "Leonardo da Vinci painted the Mona Lisa."
+                },
+                {
+                    question: "What is the chemical symbol for Gold?",
+                    options: ["Ag", "Fe", "Au", "Cu"],
+                    correct: 2,
+                    explanation: "Au is the chemical symbol for Gold."
+                },
+                {
+                    question: "Which country is known as the Land of the Rising Sun?",
+                    options: ["China", "Korea", "Japan", "Thailand"],
+                    correct: 2,
+                    explanation: "Japan is known as the Land of the Rising Sun."
+                },
+                {
+                    question: "What is the largest ocean on Earth?",
+                    options: ["Atlantic Ocean", "Indian Ocean", "Arctic Ocean", "Pacific Ocean"],
+                    correct: 3,
+                    explanation: "The Pacific Ocean is the largest ocean on Earth."
+                },
+                {
+                    question: "Who wrote Romeo and Juliet?",
+                    options: ["Charles Dickens", "William Shakespeare", "Jane Austen", "Mark Twain"],
+                    correct: 1,
+                    explanation: "William Shakespeare wrote Romeo and Juliet."
+                }
+            ],
+            hard: [
+                {
+                    question: "What is the largest prime number under 100?",
+                    options: ["89", "97", "83", "79"],
+                    correct: 1,
+                    explanation: "97 is the largest prime number under 100."
+                },
+                {
+                    question: "Who discovered the theory of relativity?",
+                    options: ["Isaac Newton", "Nikola Tesla", "Albert Einstein", "Stephen Hawking"],
+                    correct: 2,
+                    explanation: "Albert Einstein discovered the theory of relativity."
+                },
+                {
+                    question: "What is the capital of Kazakhstan?",
+                    options: ["Almaty", "Nur-Sultan", "Bishkek", "Tashkent"],
+                    correct: 1,
+                    explanation: "Nur-Sultan (formerly Astana) is the capital of Kazakhstan."
+                },
+                {
+                    question: "Which element has the atomic number 79?",
+                    options: ["Silver", "Copper", "Gold", "Platinum"],
+                    correct: 2,
+                    explanation: "Gold has the atomic number 79."
+                },
+                {
+                    question: "What is the longest river in the world?",
+                    options: ["Amazon", "Mississippi ", "Nile", "Yangtze"],
+                    correct: 2,
+                    explanation: "The Nile is often considered the longest river in the world."
+                }
+            ]
+        };
 
-    // DOM elements
-    const elements = {
-        timer: document.getElementById('timer'),
-        question: document.getElementById('question'),
-        options: document.getElementById('options'),
-        hintText: document.getElementById('hintText'),
-        explanation: document.getElementById('explanation'),
-        nextButton: document.getElementById('nextButton'),
-        score: document.getElementById('score'),
-        round: document.getElementById('round'),
-        questionNumber: document.getElementById('questionNumber'),
-        roundComplete: document.getElementById('roundComplete'),
-        scoreBreakdown: document.getElementById('scoreBreakdown'),
-        nextRoundButton: document.getElementById('nextRoundButton'),
-        fiftyFifty: document.getElementById('fiftyFifty'),
-        hint: document.getElementById('hint'),
-        timeExtension: document.getElementById('timeExtension')
-    };
+        // Quiz State Variables
+        let currentRound = 1;
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let currentQuestions = [];
+        let timeLeft = 30;
+        let timer;
 
-    function startTimer() {
-        clearInterval(timer);
-        timeLeft = 30;
-        elements.timer.textContent = timeLeft;
-        elements.timer.style.color = '#dc3545';
-        
-        timer = setInterval(() => {
-            timeLeft--;
+        // DOM Elements
+        const elements = {
+            question: document.getElementById('question'),
+            options: document.getElementById('options'),
+            nextButton: document.getElementById('nextButton'),
+            timer: document.getElementById('timer'),
+            roundDisplay: document.getElementById('round'),
+            questionNumberDisplay: document.getElementById('questionNumber'),
+            scoreDisplay: document.getElementById('score'),
+            finalScoreContainer: document.getElementById('finalScoreContainer'),
+            finalScore: document.getElementById('finalScore'),
+            restartQuiz: document.getElementById('restartQuiz')
+        };
+
+        // Utility Functions
+        function shuffleArray(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function getDifficulty(round) {
+            switch(round) {
+                case 1: return "easy";
+                case 2: return "medium";
+                case 3: return "hard";
+                default: return "easy";
+            }
+        }
+
+        function selectQuestions(difficulty) {
+            const availableQuestions = questionBank[difficulty];
+            return shuffleArray(availableQuestions).slice(0, 5);
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timeLeft = 30;
             elements.timer.textContent = timeLeft;
-            
-            if (timeLeft <= 10) {
-                elements.timer.style.color = 'red';
-            }
-            
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                handleTimeout();
-            }
-        }, 1000);
-    }
 
-    function handleTimeout() {
-        if (!answerSelected) {
-            const options = document.querySelectorAll('.option');
-            const question = currentQuestions[currentQuestion];
-            options[question.correct].classList.add('correct');
-            options.forEach(option => option.disabled = true);
-            elements.explanation.textContent = question.explanation;
-            elements.explanation.style.display = 'block';
-            answerSelected = true;
+            timer = setInterval(() => {
+                timeLeft--;
+                elements.timer.textContent = timeLeft;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function handleTimeOut() {
+            disableOptions();
             elements.nextButton.disabled = false;
-            currentStreak = 0;
         }
-    }
 
-    // Lifeline handlers
-    elements.fiftyFifty.onclick = () => {
-        if (!lifelines.fiftyFifty || answerSelected) return;
-        
-        const options = document.querySelectorAll('.option');
-        const question = currentQuestions[currentQuestion];
-        let removed = 0;
-        let indices = [...Array(options.length).keys()]
-            .filter(i => i !== question.correct)
-            .sort(() => Math.random() - 0.5);
-        
-        indices.slice(0, 2).forEach(index => {
-            options[index].style.display = 'none';
-        });
-        
-        lifelines.fiftyFifty = false;
-        elements.fiftyFifty.disabled = true;
-    };
+        function disableOptions() {
+            const optionButtons = document.querySelectorAll('.option');
+            optionButtons.forEach(btn => btn.disabled = true);
+        }
 
-    elements.hint.onclick = () => {
-        if (!lifelines.hint || answerSelected) return;
-        
-        const question = currentQuestions[currentQuestion];
-        elements.hintText.textContent = `Hint: ${question.explanation.split(':')[1]}`;
-        elements.hintText.style.display = 'block';
-        
-        lifelines.hint = false;
-        elements.hint.disabled = true;
-    };
-
-    elements.timeExtension.onclick = () => {
-        if (!lifelines.timeExtension || answerSelected) return;
-        
-        timeLeft += 30;
-        elements.timer.textContent = timeLeft;
-        elements.timer.style.color = '#dc3545';
-        
-        lifelines.timeExtension = false;
-        elements.timeExtension.disabled = true;
-    };
-
-    function calculateScore(isCorrect) {
-        let questionScore = 0;
-        
-        if (isCorrect) {
-            // Base score based on difficulty
-            questionScore += currentRound * 10;
+        function displayQuestion() {
+            const currentQuestion = currentQuestions[currentQuestionIndex];
             
-            // Time bonus
-            timeBonus = Math.max(0, timeLeft);
-            questionScore += timeBonus;
-            
-            // Streak bonus
-            currentStreak++;
-            if (currentStreak >= 3) {
-                questionScore += 15;
+            elements.question.textContent = currentQuestion.question;
+            elements.options.innerHTML = '';
+
+            currentQuestion.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = option;
+                button.classList.add('option');
+                button.addEventListener('click', () => selectOption(index));
+                elements.options.appendChild(button);
+            });
+
+            elements.questionNumberDisplay.textContent = currentQuestionIndex + 1;
+            elements.roundDisplay.textContent = currentRound;
+            startTimer();
+        }
+
+        function selectOption(index) {
+            const currentQuestion = currentQuestions[currentQuestionIndex];
+            const optionButtons = document.querySelectorAll('.option');
+
+            optionButtons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === currentQuestion.correct) {
+                    btn.classList.add('correct');
+                } else if (i === index) {
+                    btn.classList.add('incorrect');
+                }
+            });
+
+            if (index === currentQuestion.correct) {
+                score += 10; // Increment score for correct answer
             }
-            
-            roundScores.correct += questionScore;
-            roundScores.time += timeBonus;
-            if (currentStreak >= 3) {
-                roundScores.streak += 15;
+
+            elements.scoreDisplay.textContent = score;
+            elements.nextButton.disabled = false;
+            clearInterval(timer);
+        }
+
+        elements.nextButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < currentQuestions.length) {
+                displayQuestion();
+            } else {
+                alert(`Round ${currentRound} complete! Your score: ${score}`);
+                currentRound++;
+                if (currentRound <= 3) {
+                    currentQuestionIndex = 0;
+                    currentQuestions = selectQuestions(getDifficulty(currentRound));
+                    displayQuestion();
+                } else {
+                    endQuiz();
+                }
             }
-        } else {
-            currentStreak = 0;
-        }
-        
-        return questionScore;
-    }
-
-    function selectOption(index) {
-        if (answerSelected) return;
-
-        clearInterval(timer);
-        const question = currentQuestions[currentQuestion];
-        const options = document.querySelectorAll('.option');
-        
-        options[index].classList.add('selected');
-        options[question.correct].classList.add('correct');
-        
-        const isCorrect = index === question.correct;
-        if (isCorrect) {
-            score += calculateScore(true);
-            elements.score.textContent = score;
-        } else {
-            options[index].classList.add('incorrect');
-            calculateScore(false);
-        }
-
-        elements.explanation.textContent = question.explanation;
-        elements.explanation.style.display = 'block';
-        answerSelected = true;
-        elements.nextButton.disabled = false;
-        options.forEach(option => option.disabled = true);
-    }
-
-    function showRoundSummary() {
-        elements.scoreBreakdown.innerHTML = `
-            <h3>Round ${currentRound} Summary</h3>
-            <p>Base Score: ${roundScores.correct}</p>
-            <p>Time Bonuses: ${roundScores.time}</p>
-            <p>Streak Bonuses: ${roundScores.streak}</p>
-            <p>Total Round Score: ${roundScores.correct + roundScores.time + roundScores.streak}</p>
-        `;
-        
-        // Reset round scores
-        roundScores = {
-            correct: 0,
-            time: 0,
-            streak: 0
-        };
-    }
-
-    // Previous functions (getDifficulty, fetchQuestions) remain the same
-
-    async function startRound(round) {
-        // Reset lifelines
-        lifelines = {
-            fiftyFifty: true,
-            hint: true,
-            timeExtension: true
-        };
-        elements.fiftyFifty.disabled = false;
-        elements.hint.disabled = false;
-        elements.timeExtension.disabled = false;
-        
-        const difficulty = getDifficulty(round);
-        currentQuestions = await fetchQuestions(difficulty);
-        currentQuestion = 0;
-        displayQuestion();
-        elements.roundComplete.style.display = 'none';
-        startTimer();
-    }
-
-    function displayQuestion() {
-        const question = currentQuestions[currentQuestion];
-        elements.question.textContent = decodeHTML(question.question);
-        elements.options.innerHTML = '';
-        elements.explanation.style.display = 'none';
-        elements.hintText.style.display = 'none';
-        answerSelected = false;
-        elements.nextButton.disabled = true;
-
-        question.options.forEach((option, index) => {
-            const button = document.createElement('button');
-            button.className = 'option';
-            button.textContent = decodeHTML(option);
-            button.onclick = () => selectOption(index);
-            elements.options.appendChild(button);
         });
 
-        elements.questionNumber.textContent = currentQuestion + 1;
-        elements.round.textContent = currentRound;
-        startTimer();
-    }
+        function endQuiz() {
+            elements.finalScore.textContent = `Quiz completed! Final score: ${score}`;
+            elements.finalScoreContainer.style.display = 'block';
+            elements.quizContainer.style.display = 'none';
+        }
 
-    elements.nextButton.onclick = () => {
-        currentQuestion++;
-        
-        if (currentQuestion >= 5) {
-            showRoundSummary();
-            elements.roundComplete.style.display = 'block';
-            document.getElementById('quizContainer').style.display = 'none';
-        } else {
+        elements.restartQuiz.addEventListener('click', () => {
+            currentRound = 1;
+            currentQuestionIndex = 0;
+            score = 0;
+            elements.finalScoreContainer.style.display = 'none';
+            elements.quizContainer.style.display = 'block';
+            startQuiz();
+        });
+
+        function startQuiz() {
+            currentQuestions = selectQuestions(getDifficulty(currentRound));
             displayQuestion();
         }
-    };
 
-    elements.nextRoundButton.onclick = () => {
-        currentRound++;
-        if (currentRound <= 3) {
-            document.getElementById('quizContainer').style.display = 'block';
-            startRound(currentRound);
-        } else {
-            alert(`Quiz completed! Final score: ${score}`);
-            location.reload();
-        }
-    };
-
-    // Start the quiz
-    startRound(1);
-</script>
+        // Start the quiz on page load
+        document.addEventListener('DOMContentLoaded', startQuiz);
+    </script>
+</body>
+</html>
