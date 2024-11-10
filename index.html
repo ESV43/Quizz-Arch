@@ -1,37 +1,29 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Quiz Website with API Questions</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Quiz Challenge</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome to the Quiz!</h1>
-        <button id="start-btn">Start Quiz</button>
-
-        <div id="quiz-container" class="hide">
-            <div id="question-container">
-                <div id="question">Question text</div>
-                <div id="options">
-                    <!-- Options will be inserted here -->
-                </div>
-                <div id="lifeline-container">
-                    <button id="hint-btn">Use Hint</button>
-                    <span id="hint" class="hide"></span>
-                </div>
-                <div id="timer">Time left: <span id="time">30</span>s</div>
-            </div>
-            <button id="next-btn" class="hide">Next Question</button>
+    <div class="quiz-container">
+        <h1>Ultimate Quiz Challenge</h1>
+        <div id="round-info">Round <span id="current-round">1</span> of 3</div>
+        <div id="timer">Time: <span id="time-left">30</span>s</div>
+        <div id="question-container">
+            <h2 id="question"></h2>
+            <div id="answers"></div>
         </div>
-
-        <div id="result-container" class="hide">
-            <h2>Quiz Completed!</h2>
-            <p>Your Score: <span id="score"></span></p>
-            <button id="restart-btn">Restart Quiz</button>
+        <div id="feedback"></div>
+        <div id="score">Score: <span id="current-score">0</span></div>
+        <div id="lifelines">
+            <button id="fifty-fifty">50/50</button>
+            <button id="hint">Hint</button>
         </div>
+        <button id="next-question">Next Question</button>
     </div>
-
     <script src="script.js"></script>
 </body>
 </html>
